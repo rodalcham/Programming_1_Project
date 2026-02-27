@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS grades (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    student TEXT NOT NULL,
+    grade TEXT NOT NULL
+);
+
+grades.db
