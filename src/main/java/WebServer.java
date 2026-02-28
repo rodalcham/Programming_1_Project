@@ -1,7 +1,7 @@
 import java.io.*;
 import java.net.*;
 import java.util.concurrent.*;
-import Database.java
+import java.nio.file.*;
 
 public class WebServer {
     private static final int PORT = 8080;
@@ -59,8 +59,18 @@ public class WebServer {
                 reader.read(bodyChars, 0, contentLength);
                 String postBody = new String(bodyChars);
                 handlePostGrade(postBody);
-                body = buildGradesPage();
-            } else {
+				sendRedirect(output, "/grades");
+				return;
+            } else if (method.equals("POST") && path.equals("/grades/delete")) {
+    			char[] bodyChars = new char[contentLength];
+    			reader.read(bodyChars, 0, contentLength);
+    			String postBody = new String(bodyChars);
+    			// parse the id out of "id=5"
+    			String idStr = postBody.replace("id=", "").trim();
+    			Database.deleteGrade(Integer.parseInt(idStr));
+    			sendRedirect(output, "/grades");
+    			return;
+			} else {
                 body = buildNotFoundPage();
             }
 
@@ -88,18 +98,16 @@ public class WebServer {
         }
     }
 
-    private static String buildGradesPage() {
-        return "<!DOCTYPE html><html><body>" +
-               "<h1>Student Grades</h1>" +
-               "<form method='POST' action='/grades'>" +
-               "  <label>Student: <input type='text' name='student'/></label><br/>" +
-               "  <label>Grade: <input type='text' name='grade'/></label><br/>" +
-               "  <button type='submit'>Add Grade</button>" +
-               "</form>" +
-               "<h2>All Grades</h2>" +
-               Database.getGradesAsHtmlTable() +
-               "</body></html>";
-    }
+	private static String buildGradesPage() throws IOException {
+		String template = new String(Files.readAllBytes(Paths.get("grades.html")));
+		double mean = Database.calculateMean();
+		String meanStr = mean >= 0 ? String.format("%.1f", mean) : "No data yet";
+		String meanClass = mean >= 0 ? "" : "no-data"; // dimmed style when empty
+		return template
+			.replace("GRADES_TABLE_ROWS", Database.getGradesAsHtmlRows())
+			.replace("##MEAN##", meanStr)
+			.replace("GRADES_MEAN_CLASS", meanClass);
+	}
 
     private static String buildNotFoundPage() {
         return "<!DOCTYPE html><html><body><h1>404 Not Found</h1></body></html>";
@@ -115,4 +123,13 @@ public class WebServer {
         output.write(bodyBytes);
         output.flush();
     }
+
+	private static void sendRedirect(OutputStream output, String location) throws IOException {
+    String response = "HTTP/1.1 303 See Other\r\n" +
+                      "Location: " + location + "\r\n" +
+                      "\r\n";
+    output.write(response.getBytes());
+    output.flush();
+	}
+
 }

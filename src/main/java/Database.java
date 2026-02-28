@@ -53,4 +53,63 @@ public class Database {
         }
         return sb.toString();
     }
+
+	public static String getGradesAsHtmlRows() {
+    StringBuilder sb = new StringBuilder();
+    String sql = "SELECT id, student, grade FROM grades";
+    try (Connection conn = connect();
+         Statement stmt = conn.createStatement();
+         ResultSet rs = stmt.executeQuery(sql)) {
+        int i = 1;
+        while (rs.next()) {
+            int id = rs.getInt("id");
+            sb.append("<tr>")
+              .append("<td>").append(i++).append("</td>")
+              .append("<td>").append(rs.getString("student")).append("</td>")
+              .append("<td><span class='grade-badge'>").append(rs.getString("grade")).append("</span></td>")
+              .append("<td><form method='POST' action='/grades/delete'>")
+              .append("<input type='hidden' name='id' value='").append(id).append("'/>")
+              .append("<button type='submit' class='btn btn-delete'>Delete</button>")
+              .append("</form></td>")
+              .append("</tr>");
+        }
+    } catch (SQLException e) { e.printStackTrace(); }
+    return sb.toString();
+	}
+
+	public static void deleteGrade(int id) {
+		String sql = "DELETE FROM grades WHERE id = ?";
+		try (Connection conn = connect();
+			PreparedStatement stmt = conn.prepareStatement(sql)) {
+			stmt.setInt(1, id);
+			stmt.executeUpdate();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public static double calculateMean() {
+		String sql = "SELECT grade FROM grades";
+		try (Connection conn = connect();
+			Statement stmt = conn.createStatement();
+			ResultSet rs = stmt.executeQuery(sql)) {
+
+			double sum = 0;
+			int count = 0;
+			while (rs.next()) {
+				Double val = parseGrade(rs.getString("grade").trim().toUpperCase());
+				if (val != null) { sum += val; count++; }
+			}
+			return count > 0 ? sum / count : -1;
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return -1;
+		}
+	}
+
+	private static Double parseGrade(String s) {
+    	try { return Double.parseDouble(s.replace("%", "")); }
+    	catch (NumberFormatException e) { return null; }
+	}
 }
