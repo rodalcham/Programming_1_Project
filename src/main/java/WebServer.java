@@ -31,7 +31,6 @@ public class WebServer {
 
             BufferedReader reader = new BufferedReader(new InputStreamReader(input));
 
-            // parse request line
             String requestLine = reader.readLine();
             if (requestLine == null) return;
             System.out.println("Request: " + requestLine);
@@ -40,7 +39,6 @@ public class WebServer {
             String method = parts[0];
             String path = parts[1];
 
-            // read headers
             int contentLength = 0;
             String line;
             while (!(line = reader.readLine()).isEmpty()) {
@@ -49,12 +47,10 @@ public class WebServer {
                 }
             }
 
-            // route requests
             String body;
             if (method.equals("GET") && path.equals("/grades")) {
                 body = buildGradesPage();
             } else if (method.equals("POST") && path.equals("/grades")) {
-                // read post body
                 char[] bodyChars = new char[contentLength];
                 reader.read(bodyChars, 0, contentLength);
                 String postBody = new String(bodyChars);
@@ -65,7 +61,6 @@ public class WebServer {
     			char[] bodyChars = new char[contentLength];
     			reader.read(bodyChars, 0, contentLength);
     			String postBody = new String(bodyChars);
-    			// parse the id out of "id=5"
     			String idStr = postBody.replace("id=", "").trim();
     			Database.deleteGrade(Integer.parseInt(idStr));
     			sendRedirect(output, "/grades");
@@ -102,7 +97,7 @@ public class WebServer {
 		String template = new String(Files.readAllBytes(Paths.get("grades.html")));
 		double mean = Database.calculateMean();
 		String meanStr = mean >= 0 ? String.format("%.1f", mean) : "No data yet";
-		String meanClass = mean >= 0 ? "" : "no-data"; // dimmed style when empty
+		String meanClass = mean >= 0 ? "" : "no-data";
 		return template
 			.replace("GRADES_TABLE_ROWS", Database.getGradesAsHtmlRows())
 			.replace("##MEAN##", meanStr)
